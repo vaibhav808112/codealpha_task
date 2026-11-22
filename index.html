@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Random Quote Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;1,500&family=Figtree:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6f1;--ink:#1f2a24;--muted:#5f6f65;--accent:#2d6a4f;--accent-ink:#fff;--line:#cfd9d1;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a15;--ink:#e6efe8;--muted:#9bb0a3;--accent:#74c69d;--accent-ink:#0d1f16;--line:#2a3a31}}
+:root[data-theme="dark"]{--bg:#111a15;--ink:#e6efe8;--muted:#9bb0a3;--accent:#74c69d;--accent-ink:#0d1f16;--line:#2a3a31}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
+main{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 20px}
+.wrap{max-width:640px;width:100%}
+blockquote{margin:0;padding:0 0 0 22px;border-left:3px solid var(--accent)}
+#text{font-family:'Lora',Georgia,'Times New Roman',serif;font-style:italic;font-weight:500;font-size:clamp(1.5rem,4.5vw,2.2rem);line-height:1.4;margin:0;overflow-wrap:anywhere}
+#author{margin:18px 0 0;color:var(--muted);font-size:1.05rem;font-weight:600}
+button{margin-top:36px;font:inherit;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:12px 24px;min-height:48px}
+button:hover{filter:brightness(1.08)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:no-preference){.swap{animation:fade .25s ease}@keyframes fade{from{opacity:0}to{opacity:1}}}
+</style>
+</head>
+<body>
+<main>
+  <div class="wrap">
+    <blockquote aria-live="polite">
+      <p id="text"></p>
+      <p id="author"></p>
+    </blockquote>
+    <button id="new" type="button">New Quote</button>
+  </div>
+</main>
+<script>
+(function(){
+  var quotes=[
+    {t:"The only way to do great work is to love what you do.",a:"Steve Jobs"},
+    {t:"It always seems impossible until it’s done.",a:"Nelson Mandela"},
+    {t:"The journey of a thousand miles begins with a single step.",a:"Lao Tzu"},
+    {t:"What we think, we become.",a:"Buddha"},
+    {t:"Be the change that you wish to see in the world.",a:"Mahatma Gandhi"},
+    {t:"Dream, dream, dream. Dreams transform into thoughts and thoughts result in action.",a:"A. P. J. Abdul Kalam"},
+    {t:"In the middle of difficulty lies opportunity.",a:"Albert Einstein"},
+    {t:"Imagination is more important than knowledge.",a:"Albert Einstein"},
+    {t:"You miss one hundred percent of the shots you don’t take.",a:"Wayne Gretzky"},
+    {t:"Whether you think you can, or you think you can’t, you’re right.",a:"Henry Ford"},
+    {t:"The best way to predict the future is to invent it.",a:"Alan Kay"},
+    {t:"Well done is better than well said.",a:"Benjamin Franklin"},
+    {t:"Arise, awake, and stop not till the goal is reached.",a:"Swami Vivekananda"},
+    {t:"Do what you can, with what you have, where you are.",a:"Theodore Roosevelt"},
+    {t:"Education is the most powerful weapon which you can use to change the world.",a:"Nelson Mandela"},
+    {t:"Simplicity is the ultimate sophistication.",a:"Leonardo da Vinci"}
+  ];
+  var last=-1,tEl=document.getElementById("text"),aEl=document.getElementById("author");
+  function show(){
+    var n;
+    do{n=Math.floor(Math.random()*quotes.length);}while(n===last&&quotes.length>1);
+    last=n;
+    tEl.textContent="“"+quotes[n].t+"”";
+    aEl.textContent="— "+quotes[n].a;
+    tEl.classList.remove("swap");aEl.classList.remove("swap");
+    void tEl.offsetWidth;
+    tEl.classList.add("swap");aEl.classList.add("swap");
+  }
+  document.getElementById("new").addEventListener("click",show);
+  show();
+})();
+</script>
+</body>
+</html>
