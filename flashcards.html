@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Flashcard Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f6;--surface:#fff;--ink:#1c2433;--muted:#5d6a7e;--line:#d3dbe6;--accent:#2f4bd8;--accent-ink:#fff;--back:#e7ecff;--danger:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121722;--surface:#1b2230;--ink:#e8edf6;--muted:#9aa7bb;--line:#2f394c;--accent:#7f95ff;--accent-ink:#0f1530;--back:#243058;--danger:#ff8a80}}
+:root[data-theme="dark"]{--bg:#121722;--surface:#1b2230;--ink:#e8edf6;--muted:#9aa7bb;--line:#2f394c;--accent:#7f95ff;--accent-ink:#0f1530;--back:#243058;--danger:#ff8a80}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.5}
+main{max-width:560px;margin:0 auto;padding:28px 18px 48px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-height:240px;padding:28px 24px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.card.flipped{background:var(--back);border-color:var(--accent)}
+.side{font-size:.9rem;color:var(--muted);font-weight:600}
+.text{font-size:1.5rem;font-weight:600;line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}
+.card.flipped .text{font-weight:400}
+.bar{display:flex;align-items:center;gap:10px;margin-top:14px}
+.count{flex:1;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;min-height:44px}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;width:100%;margin-top:14px}
+.row{display:flex;gap:10px;margin-top:14px}
+.row button{flex:1}
+.danger{color:var(--danger)}
+form,.editor{margin-top:26px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+h2{font-size:1.05rem;margin:0 0 12px}
+label{display:block;font-weight:600;font-size:.9rem;margin:10px 0 4px}
+input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:76px;resize:vertical}
+.err{color:var(--danger);font-size:.9rem;min-height:1.2em;margin:8px 0 0}
+.empty{text-align:center;color:var(--muted)}
+.empty .text{color:var(--ink);font-size:1.2rem}
+@media (prefers-reduced-motion:no-preference){.card{transition:background .2s,border-color .2s}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Flashcard Quiz</h1>
+  <p class="sub">Read the question, then check your answer.</p>
+
+  <section id="study" aria-live="polite"></section>
+
+  <form id="form" novalidate>
+    <h2 id="formTitle">Add a flashcard</h2>
+    <label for="q">Question</label>
+    <textarea id="q" placeholder="What is the capital of France?"></textarea>
+    <label for="a">Answer</label>
+    <textarea id="a" placeholder="Paris"></textarea>
+    <p class="err" id="err" role="alert"></p>
+    <div class="row">
+      <button type="button" id="cancel" hidden>Cancel</button>
+      <button type="submit" class="primary" id="save" style="margin-top:0">Add card</button>
+    </div>
+  </form>
+</main>
+
+<script>
+(function(){
+  var KEY='flashcards-v1';
+  var defaults=[
+    {q:'What is the capital of France?',a:'Paris'},
+    {q:'What does HTML stand for?',a:'HyperText Markup Language'},
+    {q:'What is 12 × 12?',a:'144'}
+  ];
+  var cards=load(), i=0, shown=false, editing=null;
+
+  function load(){
+    try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(Array.isArray(p))return p;}}catch(e){}
+    return defaults.slice();
+  }
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(cards));}catch(e){}}
+
+  var study=document.getElementById('study'),
+      form=document.getElementById('form'),
+      q=document.getElementById('q'),a=document.getElementById('a'),
+      err=document.getElementById('err'),cancel=document.getElementById('cancel'),
+      saveBtn=document.getElementById('save'),formTitle=document.getElementById('formTitle');
+
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  function render(){
+    if(!cards.length){
+      study.innerHTML='<div class="card empty"><div class="text">No flashcards yet</div><div>Add your first card below to start studying.</div></div>';
+      return;
+    }
+    if(i>=cards.length)i=cards.length-1;
+    var c=cards[i];
+    study.innerHTML=
+      '<div class="card'+(shown?' flipped':'')+'">'+
+        '<div class="side">'+(shown?'Answer':'Question')+'</div>'+
+        '<div class="text">'+esc(shown?c.a:c.q)+'</div>'+
+      '</div>'+
+      '<button class="primary" id="flip">'+(shown?'Hide Answer':'Show Answer')+'</button>'+
+      '<div class="bar">'+
+        '<button id="prev"'+(i===0?' disabled':'')+'>Previous</button>'+
+        '<div class="count">Card '+(i+1)+' of '+cards.length+'</div>'+
+        '<button id="next"'+(i===cards.length-1?' disabled':'')+'>Next</button>'+
+      '</div>'+
+      '<div class="row"><button id="edit">Edit card</button><button id="del" class="danger">Delete card</button></div>';
+    document.getElementById('flip').onclick=function(){shown=!shown;render();document.getElementById('flip').focus();};
+    document.getElementById('prev').onclick=function(){go(-1);};
+    document.getElementById('next').onclick=function(){go(1);};
+    document.getElementById('edit').onclick=startEdit;
+    document.getElementById('del').onclick=del;
+  }
+
+  function go(d){
+    var n=i+d;if(n<0||n>=cards.length)return;
+    i=n;shown=false;render();
+    var b=document.getElementById(d>0?'next':'prev');if(b&&!b.disabled)b.focus();
+  }
+
+  function startEdit(){
+    editing=i;q.value=cards[i].q;a.value=cards[i].a;
+    formTitle.textContent='Edit flashcard';saveBtn.textContent='Save changes';cancel.hidden=false;
+    err.textContent='';form.scrollIntoView({behavior:'smooth',block:'center'});q.focus();
+  }
+  function resetForm(){
+    editing=null;q.value='';a.value='';err.textContent='';
+    formTitle.textContent='Add a flashcard';saveBtn.textContent='Add card';cancel.hidden=true;
+  }
+  function del(){
+    if(!confirm('Delete this flashcard?'))return;
+    cards.splice(i,1);
+    if(editing!==null)resetForm();
+    shown=false;save();render();
+  }
+
+  cancel.onclick=resetForm;
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var qq=q.value.trim(),aa=a.value.trim();
+    if(!qq||!aa){err.textContent='Enter both a question and an answer.';return;}
+    if(editing!==null){cards[editing]={q:qq,a:aa};i=editing;}
+    else{cards.push({q:qq,a:aa});i=cards.length-1;}
+    shown=false;save();resetForm();render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
